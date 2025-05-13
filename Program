@@ -1,0 +1,89 @@
+from IPython import get_ipython
+from IPython.display import display
+# %%
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+import seaborn as sns
+import os
+from datetime import datetime
+
+import warnings
+warnings.filterwarnings("ignore")
+# %%
+data = pd.read_csv('/content/drive/MyDrive/all_stocks_5yr.csv', delimiter=',', on_bad_lines='skip')
+print(data.shape)
+print(data.sample(7))
+# %%
+data.info()
+# %%
+data['date'] = pd.to_datetime(data['date'])
+data.info()
+# %%
+companies = ['AAPL', 'AMD', 'FB', 'GOOGL', 'AMZN', 'NVDA', 'EBAY', 'CSCO', 'IBM']
+
+plt.figure(figsize=(15, 8))
+for index, company in enumerate(companies, 1):
+    plt.subplot(3, 3, index)
+    c = data[data['Name'] == company]
+    plt.plot(c['date'], c['close'], c="r", label="close", marker="+")
+    plt.plot(c['date'], c['open'], c="g", label="open", marker="^")
+    plt.title(company)
+    plt.legend()
+    plt.tight_layout()
+
+plt.figure(figsize=(15, 8))
+for index, company in enumerate(companies, 1):
+    plt.subplot(3, 3, index)
+    c = data[data['Name'] == company]
+    plt.plot(c['date'], c['volume'], c='purple', marker='*')
+    plt.title(f"{company} Volume")
+    plt.tight_layout()
+# %%
+plt.figure(figsize=(15, 8))
+for index, company in enumerate(companies, 1):
+    plt.subplot(3, 3, index)
+    c = data[data['Name'] == company]
+    plt.plot(c['date'], c['volume'], c='purple', marker='*')
+    plt.title(f"{company} Volume")
+    plt.tight_layout()
+# %%
+apple = data[data['Name'] == 'AAPL']
+prediction_range = apple.loc[(apple['date'] > datetime(2013,1,1))
+ & (apple['date']<datetime(2018,1,1))]
+plt.plot(apple['date'],apple['close'])
+plt.xlabel("Date")
+plt.ylabel("Close")
+plt.title("Apple Stock Prices")
+plt.show()
+# %%
+# Create a label: 1 if price goes up the next day, 0 otherwise
+apple['target'] = (apple['close'].shift(-1) > apple['close']).astype(int)
+apple.dropna(inplace=True)
+# %%
+X = apple[['open', 'high', 'low', 'volume']]  # features
+y = apple['target']  # label: 1 (up), 0 (down)
+# %%
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+# %%
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+# %%
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+
+# Accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=['Down', 'Up'])
+disp.plot()
+plt.show()
